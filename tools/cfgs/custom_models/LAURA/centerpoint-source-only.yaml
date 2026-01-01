@@ -2,7 +2,7 @@ CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/custom_dataset.yaml
-    DATA_PATH: '../data/LAURA_DATASET'
+    DATA_PATH: '/home/koyama/code/ST3D/data/LAURA_DATASET'
 
 
 MODEL:

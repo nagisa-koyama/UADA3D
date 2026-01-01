@@ -1,5 +1,5 @@
 DATASET: 'NuScenesDataset'
-DATA_PATH: '/local_storage/users/maciejw/UDA_data/nuscenes'
+DATA_PATH: '/home/koyama/code/ST3D/data/nuscenes'
 
 VERSION: 'v1.0-trainval'
 SET_NAN_VELOCITY_TO_ZEROS: True

@@ -2,7 +2,7 @@ CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/custom_dataset.yaml
-    DATA_PATH: '../data/puck16-CS' 
+    DATA_PATH: '/home/koyama/code/ST3D/data/puck16-CS' 
     SHIFT_COOR: [0.0, 0.0, 2.0]
 
     DATA_PROCESSOR:
@@ -23,7 +23,7 @@ DATA_CONFIG:
 
 TARGET_DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/custom_dataset.yaml
-    DATA_PATH: '../data/LAURA_DATASET'
+    DATA_PATH: '/home/koyama/code/ST3D/data/LAURA_DATASET'
     SHIFT_COOR: [0.0, 0.0, 0.610]
 
     DATA_PROCESSOR:

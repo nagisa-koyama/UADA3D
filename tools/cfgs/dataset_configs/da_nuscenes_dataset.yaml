@@ -1,5 +1,5 @@
 DATASET: 'NuScenesDataset'
-DATA_PATH: '/proj/berzelius-2023-364/users/x_macwo/datasets/nuscenes'
+DATA_PATH: '/home/koyama/code/ST3D/data/nuscenes'
 
 VERSION: 'v1.0-trainval'
 PRED_VELOCITY: False

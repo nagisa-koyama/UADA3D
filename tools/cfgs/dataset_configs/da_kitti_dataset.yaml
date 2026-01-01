@@ -1,5 +1,5 @@
 DATASET: 'KittiDataset'
-DATA_PATH: '/local_storage/datasets/kitti'
+DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
 
 POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
 

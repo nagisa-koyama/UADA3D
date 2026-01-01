@@ -1,5 +1,5 @@
 DATASET: 'WaymoDataset'
-DATA_PATH: '/proj/berzelius-2023-364/users/x_macwo/datasets/waymoDA'
+DATA_PATH: '/home/koyama/code/ST3D/data/waymo'
 PROCESSED_DATA_TAG: 'waymo_processed_data_v0_5_0'
 
 POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]

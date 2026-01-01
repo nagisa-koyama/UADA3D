@@ -1,5 +1,5 @@
 DATASET: 'KittiDataset'
-DATA_PATH: '/proj/berzelius-2023-364/users/x_macwo/datasets/kitti'
+DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
 
 
 
@@ -18,7 +18,7 @@ GET_ITEM_LIST: ["points"]
 FOV_POINTS_ONLY: False
 
 DATA_AUGMENTOR:
-    DISABLE_AUG_LIST: ['placeholder']
+    DISABLE_AUG_LIST: ['gt_sampling'] # disable gt_sampling for unlabeled dataset
     AUG_CONFIG_LIST:
         - NAME: gt_sampling
           USE_ROAD_PLANE: False
