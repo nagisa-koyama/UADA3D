@@ -128,6 +128,11 @@ class Discriminator2(nn.Module):
                         cls_feats = torch.cat([batch_dict[self.cond_feat_key],
                                                batch_dict[self.cond_box_key]], 1)
                         y_k = batch_dict[self.cond_cls_key][:,i:i+1,:,:]
+
+                        # Skip conditional discrimination if no predictions
+                        if y_k.shape[1] == 0:
+                            continue
+
                         input_tensor = y_k*cls_feats
                     else:
                         cls_feats = torch.cat([batch_dict[self.cond_feat_key],
