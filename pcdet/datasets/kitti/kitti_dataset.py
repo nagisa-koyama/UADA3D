@@ -424,17 +424,32 @@ class KittiDataset(DatasetTemplate):
         if self._merge_all_iters_to_one_epoch:
             index = index % len(self.kitti_infos)
 
-        info = copy.deepcopy(self.kitti_infos[index])
+        try:
+            info = copy.deepcopy(self.kitti_infos[index])
 
-        sample_idx = info['point_cloud']['lidar_idx']
-        img_shape = info['image']['image_shape']
-        calib = self.get_calib(sample_idx)
-        get_item_list = self.dataset_cfg.get('GET_ITEM_LIST', ['points'])
+            sample_idx = info['point_cloud']['lidar_idx']
+            img_shape = info['image']['image_shape']
+            calib = self.get_calib(sample_idx)
+            get_item_list = self.dataset_cfg.get('GET_ITEM_LIST', ['points'])
 
-        input_dict = {
-            'frame_id': sample_idx,
-            'calib': calib,
-        }
+            input_dict = {
+                'frame_id': sample_idx,
+                'calib': calib,
+            }
+        except Exception as e:
+            # If there's an error loading this sample, try another one
+            if self._recursion_depth >= 10:
+                # Prevent infinite recursion
+                raise RuntimeError(f"Failed to load sample after 10 attempts. Last error: {e}")
+
+            if self.logger is not None:
+                self.logger.warning(f'Error loading sample {index}: {e}, trying another sample')
+
+            self._recursion_depth += 1
+            new_index = np.random.randint(self.__len__())
+            result = self.__getitem__(new_index)
+            self._recursion_depth = 0
+            return result
 
         if 'annos' in info:
             annos = info['annos']

@@ -18,8 +18,13 @@ class DatasetTemplate(torch_data.Dataset):
         self.training = training
         self.class_names = class_names
         self.logger = logger
-        self.root_path = root_path if root_path is not None else Path(self.dataset_cfg.DATA_PATH)
+        # Ensure root_path is always a Path object
+        if root_path is not None:
+            self.root_path = Path(root_path) if not isinstance(root_path, Path) else root_path
+        else:
+            self.root_path = Path(self.dataset_cfg.DATA_PATH)
         self.logger = logger
+        self._recursion_depth = 0  # Track recursion depth to prevent infinite loops
         if self.dataset_cfg is None or class_names is None:
             return
 
@@ -191,9 +196,21 @@ class DatasetTemplate(torch_data.Dataset):
 
         if not self.unsupervised:
             if self.training and len(data_dict['gt_boxes']) == 0:
-                new_index = np.random.randint(self.__len__())
-                return self.__getitem__(new_index)
+                # Prevent infinite recursion
+                if self._recursion_depth >= 10:
+                    if self.logger is not None:
+                        self.logger.warning(f'Could not find valid sample after 10 attempts, returning empty gt_boxes')
+                    self._recursion_depth = 0
+                    data_dict.pop('gt_names', None)
+                    return data_dict
 
+                self._recursion_depth += 1
+                new_index = np.random.randint(self.__len__())
+                result = self.__getitem__(new_index)
+                self._recursion_depth = 0
+                return result
+
+        self._recursion_depth = 0
         data_dict.pop('gt_names', None)
 
         return data_dict
