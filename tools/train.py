@@ -10,6 +10,13 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except Exception:
+    wandb = None
+    WANDB_AVAILABLE = False
+
 from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
 from pcdet.datasets import build_dataloader
 from pcdet.models import build_network, model_fn_decorator
@@ -46,6 +53,9 @@ def parse_config():
     parser.add_argument('--start_epoch', type=int, default=0, help='')
     parser.add_argument('--num_epochs_to_eval', type=int, default=5, help='number of checkpoints to be evaluated')
     parser.add_argument('--save_to_file', action='store_true', default=False, help='')
+    parser.add_argument('--use_wandb', action='store_true', default=False, help='enable Weights & Biases logging')
+    parser.add_argument('--run_name', type=str, default=None, help='run name for wandb')
+    parser.add_argument('--wandb_project', type=str, default='uada3d', help='wandb project name')
 
     args = parser.parse_args()
 
@@ -88,6 +98,20 @@ def main():
 
     log_file = output_dir / ('log_train_%s.txt' % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
     logger = common_utils.create_logger(log_file, rank=cfg.LOCAL_RANK)
+
+    wandb_run = None
+    if args.use_wandb and cfg.LOCAL_RANK == 0:
+        if not WANDB_AVAILABLE:
+            logger.warning('W&B not available: install wandb or disable --use_wandb')
+        else:
+            wandb_run = wandb.init(
+                config=vars(cfg),
+                project=args.wandb_project,
+                name=args.run_name,
+                dir=str(output_dir)
+            )
+            wandb_run.config.update(vars(args), allow_val_change=True)
+            logger.info('W&B run directory: %s', wandb.run.dir)
 
     # log to file
     logger.info('**********************Start logging**********************')
@@ -199,6 +223,9 @@ def main():
     )
     logger.info('**********************End evaluation %s/%s(%s)**********************' %
                 (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
+
+    if wandb_run is not None:
+        wandb.finish()
 
 
 if __name__ == '__main__':

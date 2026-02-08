@@ -7,6 +7,13 @@ import time
 from torch.nn.utils import clip_grad_norm_
 from pcdet.utils import common_utils, commu_utils
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except Exception:
+    wandb = None
+    WANDB_AVAILABLE = False
+
 def few_shot_fine_tune(model, optimizer, source_loader, target_loader, model_func, grl_scheduler, accumulated_iter,
                     optim_cfg, rank, tbar, total_it_each_epoch, source_dataloader_iter, target_dataloader_iter,
                     tb_log=None, leave_pbar=False,timers=None):
@@ -103,6 +110,20 @@ def few_shot_fine_tune(model, optimizer, source_loader, target_loader, model_fun
             tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
             for key, val in tb_dict.items():
                 tb_log.add_scalar('train/' + key, val, accumulated_iter)
+        if rank == 0 and WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+            wandb_log = {
+                'train/loss': loss.item(),
+                'train/source_loss': source_loss.item(),
+                'train/target_loss': target_loss.item(),
+                'meta_data/learning_rate': cur_lr,
+                'meta_data/gradient_reversal_coeff': grl_coeff,
+                'meta_data/data_time': data_time.val,
+                'meta_data/forward_time': forward_time.val,
+                'meta_data/batch_time': batch_time.val,
+            }
+            for key, val in tb_dict.items():
+                wandb_log['train/' + key] = val
+            wandb.log(wandb_log, step=accumulated_iter)
     print(rank)
     if rank == 0:
         pbar.close()
@@ -205,6 +226,20 @@ def train_one_epoch(model, optimizer, source_loader, target_loader, model_func, 
                 tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
                 for key, val in tb_dict.items():
                     tb_log.add_scalar('train/' + key, val, accumulated_iter)
+            if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+                wandb_log = {
+                    'train/loss': loss.item(),
+                    'train/source_loss': source_loss.item(),
+                    'train/target_loss': target_loss.item(),
+                    'meta_data/learning_rate': cur_lr,
+                    'meta_data/gradient_reversal_coeff': grl_coeff,
+                    'meta_data/data_time': data_time.val,
+                    'meta_data/forward_time': forward_time.val,
+                    'meta_data/batch_time': batch_time.val,
+                }
+                for key, val in tb_dict.items():
+                    wandb_log['train/' + key] = val
+                wandb.log(wandb_log, step=accumulated_iter)
     if rank == 0:
         pbar.close()
     return accumulated_iter
@@ -260,6 +295,8 @@ def train_model(model, optimizer, source_loader, target_loader, model_func, lr_s
                 save_checkpoint(
                     checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
                 )
+                if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+                    wandb.save(str(ckpt_name) + '.pth')
     # FEW-SHOT FINE-TUNING
     if optim_cfg.get('FEW_SHOT_FINETUNING', False):
         print('**********************Start few-shot finetuning**********************')
@@ -285,6 +322,8 @@ def train_model(model, optimizer, source_loader, target_loader, model_func, lr_s
         save_checkpoint(
             checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
         )
+        if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+            wandb.save(str(ckpt_name) + '.pth')
 
 
 

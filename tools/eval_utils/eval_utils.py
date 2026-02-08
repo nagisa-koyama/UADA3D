@@ -8,6 +8,13 @@ import tqdm
 from pcdet.models import load_data_to_gpu
 from pcdet.utils import common_utils
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except Exception:
+    wandb = None
+    WANDB_AVAILABLE = False
+
 
 def statistics_info(cfg, ret_dict, metric, disp_dict):
     for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
@@ -115,6 +122,7 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
         total_pred_objects += anno['name'].__len__()
     logger.info('Average predicted number of objects(%d samples): %.3f'
                 % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
+    ret_dict['avg_pred_objects'] = total_pred_objects / max(1, len(det_annos))
 
     with open(result_dir / 'result.pkl', 'wb') as f:
         pickle.dump(det_annos, f)
@@ -127,6 +135,10 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
 
     logger.info(result_str)
     ret_dict.update(result_dict)
+
+    if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+        wandb_log = {f'val/{key}': val for key, val in ret_dict.items()}
+        wandb.log(wandb_log, step=epoch_id)
 
     logger.info('Result is save to %s' % result_dir)
     logger.info('****************Evaluation done.*****************')

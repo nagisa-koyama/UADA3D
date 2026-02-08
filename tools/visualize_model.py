@@ -11,6 +11,13 @@ import numpy as np
 import torch
 from tensorboardX import SummaryWriter
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except Exception:
+    wandb = None
+    WANDB_AVAILABLE = False
+
 from eval_utils import eval_utils
 from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
 from pcdet.datasets import build_dataloader
@@ -41,6 +48,9 @@ def parse_config():
     parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
     parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
     parser.add_argument('--save_to_file', action='store_true', default=False, help='')
+    parser.add_argument('--use_wandb', action='store_true', default=False, help='enable Weights & Biases logging')
+    parser.add_argument('--run_name', type=str, default=None, help='run name for wandb')
+    parser.add_argument('--wandb_project', type=str, default='uada3d', help='wandb project name')
 
     args = parser.parse_args()
 
@@ -172,6 +182,20 @@ def main():
     log_file = eval_output_dir / ('log_eval_%s.txt' % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
     logger = common_utils.create_logger(log_file, rank=cfg.LOCAL_RANK)
 
+    wandb_run = None
+    if args.use_wandb and cfg.LOCAL_RANK == 0:
+        if not WANDB_AVAILABLE:
+            logger.warning('W&B not available: install wandb or disable --use_wandb')
+        else:
+            wandb_run = wandb.init(
+                config=vars(cfg),
+                project=args.wandb_project,
+                name=args.run_name,
+                dir=str(eval_output_dir)
+            )
+            wandb_run.config.update(vars(args), allow_val_change=True)
+            logger.info('W&B run directory: %s', wandb.run.dir)
+
     # log to file
     logger.info('**********************Start logging**********************')
     gpu_list = os.environ['CUDA_VISIBLE_DEVICES'] if 'CUDA_VISIBLE_DEVICES' in os.environ.keys() else 'ALL'
@@ -208,6 +232,9 @@ def main():
             repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=dist_test)
         else:
             eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=dist_test)
+
+    if wandb_run is not None:
+        wandb.finish()
     """
 
 

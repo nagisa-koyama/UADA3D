@@ -7,6 +7,13 @@ import time
 from torch.nn.utils import clip_grad_norm_
 from pcdet.utils import common_utils, commu_utils
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except Exception:
+    wandb = None
+    WANDB_AVAILABLE = False
+
 
 def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, accumulated_iter, optim_cfg,
                     rank, tbar, total_it_each_epoch, dataloader_iter, tb_log=None, leave_pbar=False):
@@ -81,6 +88,17 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
                 tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
                 for key, val in tb_dict.items():
                     tb_log.add_scalar('train/' + key, val, accumulated_iter)
+            if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+                wandb_log = {
+                    'train/loss': loss.item(),
+                    'meta_data/learning_rate': cur_lr,
+                    'meta_data/data_time': data_time.val,
+                    'meta_data/forward_time': forward_time.val,
+                    'meta_data/batch_time': batch_time.val,
+                }
+                for key, val in tb_dict.items():
+                    wandb_log['train/' + key] = val
+                wandb.log(wandb_log, step=accumulated_iter)
     if rank == 0:
         pbar.close()
     return accumulated_iter
@@ -133,6 +151,8 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 save_checkpoint(
                     checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
                 )
+                if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
+                    wandb.save(str(ckpt_name) + '.pth')
 
 
 def model_state_to_cpu(model_state):
