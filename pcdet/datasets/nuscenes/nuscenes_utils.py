@@ -497,4 +497,18 @@ def format_nuscene_results(metrics, class_names, version='default'):
         'NDS': metrics['nd_score'],
     })
 
+    # Log all detailed metrics - flatten nested dicts for wandb
+    for key, val in metrics.items():
+        if isinstance(val, dict):
+            # Flatten nested dicts like label_aps, label_tp_errors
+            for sub_key, sub_val in val.items():
+                if isinstance(sub_val, dict):
+                    # Further nested, e.g., label_aps[car][0.5]
+                    for subsub_key, subsub_val in sub_val.items():
+                        details[f'{key}/{sub_key}@{subsub_key}'] = subsub_val
+                else:
+                    details[f'{key}/{sub_key}'] = sub_val
+        else:
+            details[key] = val
+
     return result, details
