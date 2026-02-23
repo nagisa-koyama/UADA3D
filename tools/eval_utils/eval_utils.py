@@ -138,7 +138,10 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
 
     if WANDB_AVAILABLE and wandb is not None and wandb.run is not None:
         wandb_log = {f'val/{key}': val for key, val in ret_dict.items()}
-        wandb.log(wandb_log, step=epoch_id)
+        wandb.define_metric('val/epoch')
+        wandb.define_metric('val/*', step_metric='val/epoch')
+        wandb_log['val/epoch'] = epoch_id
+        wandb.log(wandb_log)
 
     logger.info('Result is save to %s' % result_dir)
     logger.info('****************Evaluation done.*****************')
