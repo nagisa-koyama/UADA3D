@@ -48,11 +48,14 @@ def parse_config():
     parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
     parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
     parser.add_argument('--save_to_file', action='store_true', default=False, help='')
-    parser.add_argument('--use_wandb', action='store_true', default=False, help='enable Weights & Biases logging')
+    parser.add_argument('--disable_wandb', action='store_true', default=False, help='disable Weights & Biases logging')
     parser.add_argument('--run_name', type=str, default=None, help='run name for wandb')
     parser.add_argument('--wandb_project', type=str, default='uada3d', help='wandb project name')
 
     args = parser.parse_args()
+
+    # Enable W&B by default unless explicitly disabled
+    args.use_wandb = not args.disable_wandb
 
     cfg_from_yaml_file(args.cfg_file, cfg)
     cfg.TAG = Path(args.cfg_file).stem
@@ -137,7 +140,9 @@ def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir
 
         if cfg.LOCAL_RANK == 0:
             for key, val in tb_dict.items():
-                tb_log.add_scalar(key, val, cur_epoch_id)
+                # Only log numeric scalar values to TensorBoard
+                if isinstance(val, (int, float, np.number)) and not np.isnan(val) and not np.isinf(val):
+                    tb_log.add_scalar(key, float(val), cur_epoch_id)
 
         # record this epoch which has been evaluated
         with open(ckpt_record_file, 'a') as f:
@@ -184,7 +189,7 @@ def main():
     wandb_run = None
     if args.use_wandb and cfg.LOCAL_RANK == 0:
         if not WANDB_AVAILABLE:
-            logger.warning('W&B not available: install wandb or disable --use_wandb')
+            logger.warning('W&B not available: install wandb or disable --disable_wandb')
         else:
             wandb_run = wandb.init(
                 config=vars(cfg),

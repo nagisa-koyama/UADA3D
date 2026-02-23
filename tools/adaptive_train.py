@@ -53,11 +53,14 @@ def parse_config():
     parser.add_argument('--start_epoch', type=int, default=0, help='')
     parser.add_argument('--num_epochs_to_eval', type=int, default=5, help='number of checkpoints to be evaluated')
     parser.add_argument('--save_to_file', action='store_true', default=False, help='')
-    parser.add_argument('--use_wandb', action='store_true', default=False, help='enable Weights & Biases logging')
+    parser.add_argument('--disable_wandb', action='store_true', default=False, help='disable Weights & Biases logging')
     parser.add_argument('--run_name', type=str, default=None, help='run name for wandb')
     parser.add_argument('--wandb_project', type=str, default='uada3d', help='wandb project name')
 
     args = parser.parse_args()
+
+    # Enable W&B by default unless explicitly disabled
+    args.use_wandb = not args.disable_wandb
 
     cfg_from_yaml_file(args.cfg_file, cfg)
     cfg.TAG = Path(args.cfg_file).stem
@@ -104,7 +107,7 @@ def main():
     wandb_run = None
     if args.use_wandb and cfg.LOCAL_RANK == 0:
         if not WANDB_AVAILABLE:
-            logger.warning('W&B not available: install wandb or disable --use_wandb')
+            logger.warning('W&B not available: install wandb or disable --disable_wandb')
         else:
             wandb_run = wandb.init(
                 config=vars(cfg),
