@@ -234,6 +234,25 @@ class NuScenesDataset(DatasetTemplate):
             'use_external': False,
         }
 
+        eval_set_map = {
+            'v1.0-mini': 'mini_val',
+            'v1.0-trainval': 'val',
+            'v1.0-test': 'test'
+        }
+
+        # NuScenesEval requires exactly the eval-split tokens (equality check).
+        # filter_eval_boxes requires the first key to be non-empty.
+        # Solution: non-empty entries first, then pad only eval-split tokens with [].
+        from nuscenes.utils.splits import create_splits_scenes
+        split_scenes = set(create_splits_scenes()[eval_set_map[self.dataset_cfg.VERSION]])
+        split_tokens = [s['token'] for s in nusc.sample
+                        if nusc.get('scene', s['scene_token'])['name'] in split_scenes]
+        non_empty = {k: v for k, v in nusc_annos['results'].items() if v}
+        if not non_empty:
+            self.logger.warning('NuScenes evaluation skipped: model produced zero predictions above score threshold.')
+            return 'No predictions above score threshold', {}
+        nusc_annos['results'] = {**non_empty, **{t: nusc_annos['results'].get(t, []) for t in split_tokens}}
+
         output_path = Path(kwargs['output_path'])
         output_path.mkdir(exist_ok=True, parents=True)
         res_path = str(output_path / 'results_nusc.json')
@@ -247,12 +266,6 @@ class NuScenesDataset(DatasetTemplate):
 
         from nuscenes.eval.detection.config import config_factory
         from nuscenes.eval.detection.evaluate import NuScenesEval
-
-        eval_set_map = {
-            'v1.0-mini': 'mini_val',
-            'v1.0-trainval': 'val',
-            'v1.0-test': 'test'
-        }
         try:
             eval_version = 'detection_cvpr_2019'
             eval_config = config_factory(eval_version)
