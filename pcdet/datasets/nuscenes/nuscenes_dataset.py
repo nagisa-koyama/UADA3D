@@ -33,6 +33,10 @@ class NuScenesDataset(DatasetTemplate):
                 infos = pickle.load(f)
                 nuscenes_infos.extend(infos)
 
+        max_samples = self.dataset_cfg.get('MAX_SAMPLES', None)
+        if max_samples is not None:
+            nuscenes_infos = nuscenes_infos[:max_samples]
+
         self.infos.extend(nuscenes_infos)
         self.logger.info('Total samples for NuScenes dataset: %d' % (len(nuscenes_infos)))
 
@@ -133,9 +137,17 @@ class NuScenesDataset(DatasetTemplate):
             else:
                 mask = None
 
+            gt_names = info['gt_names'] if mask is None else info['gt_names'][mask]
+            gt_boxes = info['gt_boxes'] if mask is None else info['gt_boxes'][mask]
+
+            # Remap GT class names (e.g. nuScenes lowercase -> KITTI capitalized)
+            class_mapping = self.dataset_cfg.get('CLASS_MAPPING', {})
+            if class_mapping:
+                gt_names = np.array([class_mapping.get(n, n) for n in gt_names])
+
             input_dict.update({
-                'gt_names': info['gt_names'] if mask is None else info['gt_names'][mask],
-                'gt_boxes': info['gt_boxes'] if mask is None else info['gt_boxes'][mask]
+                'gt_names': gt_names,
+                'gt_boxes': gt_boxes
             })
 
         data_dict = self.prepare_data(data_dict=input_dict)
@@ -203,6 +215,16 @@ class NuScenesDataset(DatasetTemplate):
         if not hasattr(np, 'float'):
             np.float = float
         nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
+
+        # Remap predicted names back to nuScenes lowercase (inverse of CLASS_MAPPING used at load time)
+        class_mapping = self.dataset_cfg.get('CLASS_MAPPING', {})
+        inv_mapping = {}
+        if class_mapping:
+            inv_mapping = {v: k for k, v in class_mapping.items() if k == k.lower()}
+            for anno in det_annos:
+                anno['name'] = np.array([inv_mapping.get(n, n) for n in anno['name']])
+        nusc_class_names = [inv_mapping.get(n, n) for n in class_names]
+
         nusc_annos = nuscenes_utils.transform_det_annos_to_nusc_annos(det_annos, nusc)
         nusc_annos['meta'] = {
             'use_camera': False,
@@ -251,7 +273,7 @@ class NuScenesDataset(DatasetTemplate):
         with open(output_path / 'metrics_summary.json', 'r') as f:
             metrics = json.load(f)
 
-        result_str, result_dict = nuscenes_utils.format_nuscene_results(metrics, self.class_names, version=eval_version)
+        result_str, result_dict = nuscenes_utils.format_nuscene_results(metrics, nusc_class_names, version=eval_version)
         return result_str, result_dict
 
     def create_groundtruth_database(self, used_classes=None, max_sweeps=10):

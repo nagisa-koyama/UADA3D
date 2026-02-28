@@ -47,6 +47,10 @@ class KittiDataset(DatasetTemplate):
                 infos = pickle.load(f)
                 kitti_infos.extend(infos)
 
+        max_samples = self.dataset_cfg.get('MAX_SAMPLES', None)
+        if max_samples is not None:
+            kitti_infos = kitti_infos[:max_samples]
+
         self.kitti_infos.extend(kitti_infos)
 
         if self.logger is not None:

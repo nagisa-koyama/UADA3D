@@ -73,6 +73,11 @@ class WaymoDataset(DatasetTemplate):
             for k in range(0, len(self.infos), self.dataset_cfg.SAMPLED_INTERVAL[mode]):
                 sampled_waymo_infos.append(self.infos[k])
             self.infos = sampled_waymo_infos
+
+        max_samples = self.dataset_cfg.get('MAX_SAMPLES', None)
+        if max_samples is not None:
+            self.infos = self.infos[:max_samples]
+            self.logger.info('MAX_SAMPLES applied: using %d samples' % len(self.infos))
             self.logger.info('Total sampled samples for Waymo dataset: %d' % len(self.infos))
 
     def load_data_to_shared_memory(self):

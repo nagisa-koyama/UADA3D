@@ -43,6 +43,10 @@ class CustomDataset(DatasetTemplate):
                 infos = pickle.load(f)
                 custom_infos.extend(infos)
 
+        max_samples = self.dataset_cfg.get('MAX_SAMPLES', None)
+        if max_samples is not None:
+            custom_infos = custom_infos[:max_samples]
+
         self.custom_infos.extend(custom_infos)
         self.logger.info('Total samples for CUSTOM dataset: %d' % (len(custom_infos)))
 
