@@ -1,6 +1,6 @@
 # Use KITTI class names (capitalized)
-CLASS_NAMES: ['Car', 'Pedestrian']
-# CLASS_NAMES: ['car', 'pedestrian']
+CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
+# CLASS_NAMES: ['car', 'pedestrian', 'cyclist']
 
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/da_kitti_dataset.yaml
@@ -55,8 +55,11 @@ TARGET_DATA_CONFIG:
     # Map nuScenes lowercase GT names to KITTI-style capitalized names used by the model
     CLASS_MAPPING: {'car': 'Car',
                    'pedestrian': 'Pedestrian',
+                   'motorcycle': 'Cyclist',
+                   'bicycle': 'Cyclist',
                    'Car': 'Car',
-                   'Pedestrian': 'Pedestrian'}
+                   'Pedestrian': 'Pedestrian',
+                   'Cyclist': 'Cyclist'}
 
     UNSUPERVISED: True
 
@@ -131,8 +134,8 @@ MODEL:
         CLASS_AGNOSTIC: False
 
         CLASS_NAMES_EACH_HEAD: [
-            ['Car','Pedestrian'],
-            # ['car','pedestrian'],
+            ['Car','Pedestrian','Cyclist'],
+            # ['car','pedestrian','cyclist'],
         ]
 
         SHARED_CONV_CHANNEL: 64
@@ -160,7 +163,7 @@ MODEL:
                 'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
             }
         POST_PROCESSING:
-            SCORE_THRESH: 0.1
+            SCORE_THRESH: 0.01
             POST_CENTER_LIMIT_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
             MAX_OBJ_PER_SAMPLE: 500
             NMS_CONFIG:

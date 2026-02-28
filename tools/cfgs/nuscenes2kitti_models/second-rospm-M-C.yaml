@@ -4,7 +4,7 @@ CLASS_NAMES: ['car', 'pedestrian', 'bicycle']
 DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/da_nuscenes_dataset.yaml
     DATA_PATH: '/home/koyama/code/ST3D/data/nuscenes'
-    MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
+    # MAX_SAMPLES: 1000  # Uncomment to limit training samples for quick iteration
     MAX_SWEEPS: 1  # Single sweep avoids cross-frame motion blur; better for cross-sensor DA
 
     # Shift Z to ground level (nuScenes lidar mounted at ~1.84m)
@@ -51,7 +51,7 @@ DATA_CONFIG:
 TARGET_DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/da_kitti_dataset.yaml
     DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
-    MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
+    # MAX_SAMPLES: 1000  # Uncomment to limit training samples for quick iteration
 
     # Shift Z to ground level (Velodyne HDL-64E mounted at ~1.73m)
     SHIFT_COOR: [0.0, 0.0, 1.7]
@@ -192,7 +192,7 @@ MODEL:
 
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 4
+    BATCH_SIZE_PER_GPU: 12
     NUM_EPOCHS: 5
 
     OPTIMIZER: adam_onecycle
@@ -203,7 +203,7 @@ OPTIMIZATION:
     MOMS: [0.95, 0.85]
     PCT_START: 0.4
     DIV_FACTOR: 10
-    DECAY_STEP_LIST: [30, 38]
+    DECAY_STEP_LIST: [1, 4]
     LR_DECAY: 0.1
     LR_CLIP: 0.0000001
 
