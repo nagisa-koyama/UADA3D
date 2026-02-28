@@ -56,6 +56,7 @@ def parse_config():
     parser.add_argument('--disable_wandb', action='store_true', default=False, help='disable Weights & Biases logging')
     parser.add_argument('--run_name', type=str, default=None, help='run name for wandb')
     parser.add_argument('--wandb_project', type=str, default='uada3d', help='wandb project name')
+    parser.add_argument('--wandb_notes', type=str, default=None, help='notes for wandb run')
 
     args = parser.parse_args()
 
@@ -111,6 +112,7 @@ def main():
                 config=vars(cfg),
                 project=args.wandb_project,
                 name=args.run_name,
+                notes=args.wandb_notes,
                 dir=str(output_dir)
             )
             wandb_run.config.update(vars(args), allow_val_change=True)
