@@ -1,7 +1,9 @@
 DATASET: 'KittiDataset'
 DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
+# MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
 
-POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
+# Asymmetric range: 150m front, 50m rear/side, ±51.2 Y (must be divisible by voxel*16 for BEV backbone)
+POINT_CLOUD_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
 
 DATA_SPLIT: {
     'train': train,
@@ -60,7 +62,9 @@ DATA_PROCESSOR:
 
 TEST:
     BOX_FILTER: {
-        'USE_IMAGE_AREA_FILTER': True,
+        'USE_IMAGE_AREA_FILTER': False,
         'FOV_FILTER': True,
-        'LIMIT_RANGE': [-75.2, -75.2, -2, 75.2, 75.2, 4]
+        'LIMIT_RANGE': [-50, -51.2, -2, 150, 51.2, 4]
     }
+
+FOV_POINTS_ONLY: False
