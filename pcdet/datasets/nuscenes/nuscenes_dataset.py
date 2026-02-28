@@ -125,6 +125,9 @@ class NuScenesDataset(DatasetTemplate):
         info = copy.deepcopy(self.infos[index])
         points = self.get_lidar_with_sweeps(index, max_sweeps=self.dataset_cfg.MAX_SWEEPS)
 
+        if self.dataset_cfg.get('SHIFT_COOR', None):
+            points[:, 0:3] += np.array(self.dataset_cfg.SHIFT_COOR, dtype=np.float32)
+
         input_dict = {
             'points': points,
             'frame_id': Path(info['lidar_path']).stem,
@@ -144,6 +147,9 @@ class NuScenesDataset(DatasetTemplate):
             class_mapping = self.dataset_cfg.get('CLASS_MAPPING', {})
             if class_mapping:
                 gt_names = np.array([class_mapping.get(n, n) for n in gt_names])
+
+            if self.dataset_cfg.get('SHIFT_COOR', None):
+                gt_boxes[:, 0:3] += self.dataset_cfg.SHIFT_COOR
 
             input_dict.update({
                 'gt_names': gt_names,
