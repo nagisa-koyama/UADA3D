@@ -1,13 +1,14 @@
-# Use KITTI class names (capitalized)
-CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
+# Use nuScenes class names (lowercase); CLASS_MAPPING on target remaps to KITTI capitalized for eval
+CLASS_NAMES: ['car', 'pedestrian', 'bicycle']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/da_kitti_dataset.yaml
-    DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
-    # MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
+    _BASE_CONFIG_: cfgs/dataset_configs/da_nuscenes_dataset.yaml
+    DATA_PATH: '/home/koyama/code/ST3D/data/nuscenes'
+    MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
+    MAX_SWEEPS: 1  # Single sweep avoids cross-frame motion blur; better for cross-sensor DA
 
-    # Shift Z to ground level (Velodyne HDL-64E mounted at ~1.73m); aligns anchor_bottom_heights across domains
-    SHIFT_COOR: [0.0, 0.0, 1.7]
+    # Shift Z to ground level (nuScenes lidar mounted at ~1.84m)
+    SHIFT_COOR: [0.0, 0.0, 1.75]
 
     # Must match target range exactly (domain adaptation requires identical BEV spatial dims)
     POINT_CLOUD_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
@@ -34,9 +35,9 @@ DATA_CONFIG:
         AUG_CONFIG_LIST:
             - NAME: random_object_scaling
               SCALE_UNIFORM_NOISE: {
-                  'Car': [ 0.8, 1.2],
-                  'Pedestrian': [0.9, 1.1],
-                  'Cyclist': [ 0.9, 1.1 ]
+                  'car': [0.8, 1.2],
+                  'pedestrian': [0.9, 1.1],
+                  'bicycle': [0.9, 1.1]
               }
             - NAME: random_world_flip
               ALONG_AXIS_LIST: ['x', 'y']
@@ -48,19 +49,17 @@ DATA_CONFIG:
               WORLD_SCALE_RANGE: [0.95, 1.05]
 
 TARGET_DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/da_nuscenes_dataset.yaml
-    DATA_PATH: '/home/koyama/code/ST3D/data/nuscenes'
-    MAX_SWEEPS: 1  # Single sweep avoids cross-frame motion blur; better for cross-sensor DA
-    # MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
-    # Shift Z to ground level (nuScenes lidar mounted at ~1.84m)
-    SHIFT_COOR: [0.0, 0.0, 1.75]
+    _BASE_CONFIG_: cfgs/dataset_configs/da_kitti_dataset.yaml
+    DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
+    MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
 
-    # Map nuScenes lowercase GT names to KITTI-style capitalized names used by the model
-    # 'bicycle' is the actual nuScenes class; 'cyclist' does not exist in nuScenes
-    # The inverse mapping (for eval) recovers: Cyclist -> bicycle, which is valid in cls_attr_dist
+    # Shift Z to ground level (Velodyne HDL-64E mounted at ~1.73m)
+    SHIFT_COOR: [0.0, 0.0, 1.7]
+
+    # Map lowercase predicted names to KITTI capitalized names for evaluation
+    # bicycle -> Cyclist is the closest KITTI equivalent
     CLASS_MAPPING: {'car': 'Car',
                    'pedestrian': 'Pedestrian',
-                   'motorcycle': 'Cyclist',
                    'bicycle': 'Cyclist',
                    'Car': 'Car',
                    'Pedestrian': 'Pedestrian',
@@ -130,7 +129,7 @@ MODEL:
 
         ANCHOR_GENERATOR_CONFIG: [
             {
-                'class_name': 'Car',
+                'class_name': 'car',
                 'anchor_sizes': [[3.9, 1.6, 1.56]],
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [0],
@@ -140,7 +139,7 @@ MODEL:
                 'unmatched_threshold': 0.45
             },
             {
-                'class_name': 'Pedestrian',
+                'class_name': 'pedestrian',
                 'anchor_sizes': [[0.8, 0.6, 1.73]],
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [0],
@@ -150,7 +149,7 @@ MODEL:
                 'unmatched_threshold': 0.15
             },
             {
-                'class_name': 'Cyclist',
+                'class_name': 'bicycle',
                 'anchor_sizes': [[1.76, 0.6, 1.73]],
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [0],
@@ -193,8 +192,8 @@ MODEL:
 
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 12
-    NUM_EPOCHS: 40
+    BATCH_SIZE_PER_GPU: 4
+    NUM_EPOCHS: 5
 
     OPTIMIZER: adam_onecycle
     LR: 0.003
