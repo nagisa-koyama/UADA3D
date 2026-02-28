@@ -413,6 +413,14 @@ class KittiDataset(DatasetTemplate):
 
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.kitti_infos]
+
+        # Remap predicted names and class_names to KITTI capitalized convention if CLASS_MAPPING is set
+        class_mapping = self.dataset_cfg.get('CLASS_MAPPING', {})
+        if class_mapping:
+            for anno in eval_det_annos:
+                anno['name'] = np.array([class_mapping.get(n, n) for n in anno['name']])
+            class_names = [class_mapping.get(n, n) for n in class_names]
+
         ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 
         return ap_result_str, ap_dict
