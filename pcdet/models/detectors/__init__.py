@@ -12,6 +12,7 @@ from .pv_rcnn_plusplus import PVRCNNPlusPlus
 from .IASSD import IASSD
 from .DA_IASSD import DAIASSD
 # from .da_second_net import DASECONDNet
+from .da_second_net import DASECONDNet
 from .da_centerpoint import DACenterPoint
 
 __all__ = {
@@ -29,6 +30,7 @@ __all__ = {
     'IASSD': IASSD,
     'DAIASSD': DAIASSD,
     # 'DASECONDNet': DASECONDNet,
+    'DASECONDNet': DASECONDNet,
     'DACenterPoint': DACenterPoint,
 }
 
