@@ -414,6 +414,24 @@ class KittiDataset(DatasetTemplate):
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.kitti_infos]
 
+        # Un-shift predictions from the shifted lidar frame back to original KITTI lidar frame.
+        # generate_prediction_dicts is a @staticmethod and cannot access dataset_cfg, so
+        # the SHIFT_COOR subtraction is missing there — we fix it here.
+        # For KITTI eval, camera-space coords (location, dimensions, rotation_y) must also be recomputed.
+        shift_coor = self.dataset_cfg.get('SHIFT_COOR', None)
+        if shift_coor is not None:
+            shift_arr = np.array(shift_coor, dtype=np.float32)
+            frame_calib_map = {info['point_cloud']['lidar_idx']: self.get_calib(info['point_cloud']['lidar_idx'])
+                               for info in self.kitti_infos}
+            for anno in eval_det_annos:
+                if anno['boxes_lidar'].shape[0] > 0:
+                    anno['boxes_lidar'][:, 0:3] -= shift_arr
+                    calib = frame_calib_map[anno['frame_id']]
+                    boxes_camera = box_utils.boxes3d_lidar_to_kitti_camera(anno['boxes_lidar'], calib)
+                    anno['location'] = boxes_camera[:, 0:3]
+                    anno['dimensions'] = boxes_camera[:, 3:6]
+                    anno['rotation_y'] = boxes_camera[:, 6]
+
         # Remap predicted names and class_names to KITTI capitalized convention if CLASS_MAPPING is set
         class_mapping = self.dataset_cfg.get('CLASS_MAPPING', {})
         if class_mapping:

@@ -229,6 +229,15 @@ class NuScenesDataset(DatasetTemplate):
             inv_mapping = {v: k for k, v in class_mapping.items() if k == k.lower()}
             for anno in det_annos:
                 anno['name'] = np.array([inv_mapping.get(n, n) for n in anno['name']])
+
+        # Un-shift predictions from the shifted coordinate frame back to native nuScenes lidar frame.
+        # generate_prediction_dicts in this class is a @staticmethod and cannot access dataset_cfg,
+        # so the SHIFT_COOR subtraction that the base class does is missing — we fix it here.
+        shift_coor = self.dataset_cfg.get('SHIFT_COOR', None)
+        if shift_coor is not None:
+            for anno in det_annos:
+                if anno['boxes_lidar'].shape[0] > 0:
+                    anno['boxes_lidar'][:, 0:3] -= np.array(shift_coor, dtype=np.float32)
         nusc_class_names = [inv_mapping.get(n, n) for n in class_names]
 
         nusc_annos = nuscenes_utils.transform_det_annos_to_nusc_annos(det_annos, nusc)

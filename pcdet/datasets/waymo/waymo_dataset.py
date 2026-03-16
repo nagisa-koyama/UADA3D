@@ -321,6 +321,16 @@ class WaymoDataset(DatasetTemplate):
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.infos]
 
+        # Un-shift predictions from the shifted lidar frame back to original Waymo lidar frame.
+        # generate_prediction_dicts is a @staticmethod and cannot access dataset_cfg, so
+        # the SHIFT_COOR subtraction is missing there — we fix it here.
+        shift_coor = self.dataset_cfg.get('SHIFT_COOR', None)
+        if shift_coor is not None:
+            shift_arr = np.array(shift_coor, dtype=np.float32)
+            for anno in eval_det_annos:
+                if anno['boxes_lidar'].shape[0] > 0:
+                    anno['boxes_lidar'][:, 0:3] -= shift_arr
+
         if kwargs['eval_metric'] == 'kitti':
             ap_result_str, ap_dict = kitti_eval(eval_det_annos, eval_gt_annos)
         elif kwargs['eval_metric'] == 'waymo':
