@@ -55,6 +55,10 @@ TARGET_DATA_CONFIG:
     # Shift Z to ground level (nuScenes lidar mounted at ~1.84m)
     SHIFT_COOR: [0.0, 0.0, 1.75]
 
+    # Must match target range exactly (domain adaptation requires identical BEV spatial dims)
+    POINT_CLOUD_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
+
+
     # Map nuScenes lowercase GT names to KITTI-style capitalized names used by the model
     # 'bicycle' is the actual nuScenes class; 'cyclist' does not exist in nuScenes
     # The inverse mapping (for eval) recovers: Cyclist -> bicycle, which is valid in cls_attr_dist
@@ -179,7 +183,7 @@ MODEL:
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
-        SCORE_THRESH: 0.1
+        SCORE_THRESH: 0.01
         OUTPUT_RAW_SCORE: False
 
         EVAL_METRIC: kitti

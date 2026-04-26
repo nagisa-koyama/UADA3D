@@ -135,6 +135,13 @@ def main():
 
     tb_log = SummaryWriter(log_dir=str(output_dir / 'tensorboard')) if cfg.LOCAL_RANK == 0 else None
 
+    # Sanity-check: mismatched ranges produce different BEV spatial dims and break the discriminator
+    assert list(cfg.DATA_CONFIG.POINT_CLOUD_RANGE) == list(cfg.TARGET_DATA_CONFIG.POINT_CLOUD_RANGE), (
+        f"POINT_CLOUD_RANGE mismatch between DATA_CONFIG {list(cfg.DATA_CONFIG.POINT_CLOUD_RANGE)} "
+        f"and TARGET_DATA_CONFIG {list(cfg.TARGET_DATA_CONFIG.POINT_CLOUD_RANGE)}. "
+        "Both must be identical for domain adaptation (BEV feature map dims must match)."
+    )
+
     # -----------------------create dataloader & network & optimizer---------------------------
     # Create dataset, loader and sampler for source and target domain
     source_dataset, source_loader, source_sampler = build_dataloader(
