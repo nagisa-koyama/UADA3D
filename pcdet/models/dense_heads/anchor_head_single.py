@@ -41,8 +41,18 @@ class AnchorHeadSingle(AnchorHeadTemplate):
     def forward(self, data_dict):
         spatial_features_2d = data_dict['spatial_features_2d']
 
-        cls_preds = self.conv_cls(spatial_features_2d)
-        box_preds = self.conv_box(spatial_features_2d)
+        cls_preds = self.conv_cls(spatial_features_2d)  # [B, num_anchors*num_class, H, W]
+        box_preds = self.conv_box(spatial_features_2d)  # [B, num_anchors*box_code_size, H, W]
+
+        # Save spatial maps for the conditional discriminator (Conv2d mode).
+        # cls_preds_spatial: per-class max confidence over anchors → [B, num_class, H, W]
+        # box_preds_spatial: raw anchor box encodings             → [B, num_anchors*box_code_size, H, W]
+        if self.training:
+            B, _, H, W = cls_preds.shape
+            data_dict['cls_preds_spatial'] = cls_preds.view(
+                B, self.num_anchors_per_location, self.num_class, H, W
+            ).max(dim=1)[0]
+            data_dict['box_preds_spatial'] = box_preds
 
         cls_preds = cls_preds.permute(0, 2, 3, 1).contiguous()  # [N, H, W, C]
         box_preds = box_preds.permute(0, 2, 3, 1).contiguous()  # [N, H, W, C]

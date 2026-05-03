@@ -331,12 +331,20 @@ class CenterHead(nn.Module):
 
 
 
-        #INPUT_DICT_KEYS: ['batch_cls_preds', 'batch_box_preds', 'centers_features']
         data_dict['batch_box_preds'] = torch.cat((pred_dicts[0]['center'], pred_dicts[0]['center_z'],
                                                  pred_dicts[0]['dim'], pred_dicts[0]['rot']), 1)
-        #print(data_dict['batch_box_preds'].shape)
 
         data_dict['batch_cls_preds'] = pred_dicts[0]['hm']
+
+        # Save spatial maps for the conditional discriminator (Conv2d mode).
+        # cls_preds_spatial: sigmoid-clamped heatmap [B, num_class, H, W] — used as confidence
+        #   weights for feature masking; raw logits would invert features in non-detection regions.
+        # box_preds_spatial: raw spatial box encoding [B, 8, H, W]
+        if self.training:
+            data_dict['cls_preds_spatial'] = torch.clamp(
+                pred_dicts[0]['hm'].sigmoid(), min=1e-4, max=1 - 1e-4
+            )
+            data_dict['box_preds_spatial'] = data_dict['batch_box_preds']
 
         if 'domain' in data_dict:
             if self.training and data_dict['domain'] != 1:
