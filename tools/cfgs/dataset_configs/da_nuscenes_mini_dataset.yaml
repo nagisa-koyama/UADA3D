@@ -1,27 +1,39 @@
-DATASET: 'KittiDataset'
-DATA_PATH: '/home/koyama/code/ST3D/data/kitti'
-# MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
+DATASET: 'NuScenesDataset'
+DATA_PATH: '/home/koyama/code/ST3D/data/nuscenes'
 
+VERSION: 'v1.0-mini'
+# VERSION: 'v1.0-trainval'
+PRED_VELOCITY: False
+SET_NAN_VELOCITY_TO_ZEROS: True
+FILTER_MIN_POINTS_IN_GT: 1
 POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
-
 DATA_SPLIT: {
     'train': train,
-    'test': val
+    'test': mini_val,
 }
+# CLASS_NAMES: ['car','truck','bus','motorcycle','bicycle','pedestrian']
+# CLASS_MAPPING: defined per-model in model config TARGET_DATA_CONFIG, not here
 
 INFO_PATH: {
-    'train': [kitti_infos_train.pkl],
-    'test': [kitti_infos_val.pkl],
+    'train': [nuscenes_infos_10sweeps_train.pkl],
+    'val': [nuscenes_infos_10sweeps_val.pkl],
+    'test': [nuscenes_infos_10sweeps_val.pkl],
+
 }
 
+MAX_SWEEPS: 10
+
 DATA_AUGMENTOR:
-    DISABLE_AUG_LIST: ['random_object_scaling', 'random_object_rotation']
+    DISABLE_AUG_LIST: ['random_object_rotation', 'random_object_scaling', 'normalize_object_size']
     AUG_CONFIG_LIST:
         - NAME: random_object_scaling
-          SCALE_UNIFORM_NOISE: [0.9, 1.1]
+          SCALE_UNIFORM_NOISE: [0.85, 1.05]
+
+        - NAME: normalize_object_size
+          SIZE_RES: [-0.16, -0.15, -0.06]
 
         - NAME: random_object_rotation
-          ROT_PROB: 1.0
+          ROT_PROB: 0.8
           ROT_UNIFORM_NOISE: [-0.78539816, 0.78539816]
 
         - NAME: random_world_flip
@@ -37,7 +49,7 @@ DATA_AUGMENTOR:
 POINT_FEATURE_ENCODING: {
     encoding_type: absolute_coordinates_encoding,
     used_feature_list: ['x', 'y', 'z', 'intensity'],
-    src_feature_list: ['x', 'y', 'z', 'intensity'],
+    src_feature_list: ['x', 'y', 'z', 'intensity', 'elongation'],
 }
 
 
@@ -48,7 +60,7 @@ DATA_PROCESSOR:
     - NAME: shuffle_points
       SHUFFLE_ENABLED: {
         'train': True,
-        'test': False
+        'test': True
       }
 
     - NAME: transform_points_to_voxels
@@ -57,13 +69,4 @@ DATA_PROCESSOR:
       MAX_NUMBER_OF_VOXELS: {
         'train': 80000,
         'test': 90000
-      }
-
-TEST:
-    BOX_FILTER: {
-        'USE_IMAGE_AREA_FILTER': False,
-        'FOV_FILTER': True,
-        'LIMIT_RANGE': [-50, -51.2, -2, 150, 51.2, 4]
-    }
-
-FOV_POINTS_ONLY: False
+      }      

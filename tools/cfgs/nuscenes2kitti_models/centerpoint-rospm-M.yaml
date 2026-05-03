@@ -11,9 +11,6 @@ DATA_CONFIG:
     # Shift Z to ground level (nuScenes lidar mounted at ~1.84m)
     SHIFT_COOR: [0.0, 0.0, 1.75]
 
-    # Must match target range exactly (domain adaptation requires identical BEV spatial dims)
-    POINT_CLOUD_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
-
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True
@@ -56,8 +53,6 @@ TARGET_DATA_CONFIG:
     # MAX_SAMPLES: 100  # Uncomment to limit training samples for quick iteration
     # Shift Z to ground level (Velodyne HDL-64E mounted at ~1.73m)
     SHIFT_COOR: [0.0, 0.0, 1.7]
-    # Must match target range exactly (domain adaptation requires identical BEV spatial dims)
-    POINT_CLOUD_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
 
     # Map nuScenes-style lowercase predicted names to KITTI capitalized names for evaluation
     CLASS_MAPPING: {'car': 'Car',
@@ -155,7 +150,7 @@ MODEL:
             }
         POST_PROCESSING:
             SCORE_THRESH: 0.01
-            POST_CENTER_LIMIT_RANGE: [-50, -51.2, -2, 150, 51.2, 4]
+            POST_CENTER_LIMIT_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
             MAX_OBJ_PER_SAMPLE: 500
             NMS_CONFIG:
                 NMS_TYPE: nms_gpu
