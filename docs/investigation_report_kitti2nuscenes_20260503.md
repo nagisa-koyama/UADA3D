@@ -2,17 +2,65 @@
 
 **Date:** 2026-05-03  
 **Branch:** `v20260102_benchmark`  
-**Scope:** Diagnosis of zero/low mAP in K→N runs, paper reproduction audit, and conditional discriminator fix.
+**Scope:** Diagnosis of zero/low mAP in K→N and N→K runs, paper reproduction audit, and conditional discriminator fix.
 
 ---
 
 ## 1. Runs Investigated
+
+### K→N (KITTI → nuScenes)
 
 | W&B Run | Config | Discriminator | nuScenes mAP | Status |
 |---|---|---|---|---|
 | `zg6yq4xn` | `second-rospm-M-C` | Marginal only | **0.000** | Broken — PCR mismatch |
 | `hseplt9x` | `second-rospm-M-C` | Marginal only | **0.018** | Partial fix |
 | `rhbp2jxp` | `centerpoint-rospm-M-C` | Marginal + broken conditional | **0.009** | Conditional disc non-functional |
+
+### N→K (nuScenes → KITTI)
+
+| W&B Run | Config | Discriminator | KITTI 3D AP (mod.) | Status |
+|---|---|---|---|---|
+| `r13gavm4` | `second-rospm-M-C` | Marginal only | Car **1.55%** / Ped **5.30%** / Cyc **0.09%** | Broken — marginal only, asymmetric PCR |
+
+---
+
+## 1.1 Analysis of N→K run `r13gavm4` (nuScenes→KITTI, SECOND, epoch 5)
+
+**KITTI 3D AP R40 (final epoch):**
+
+| Class | Easy | Moderate | Hard |
+|---|---|---|---|
+| Car | 1.72% | 1.55% | 1.58% |
+| Pedestrian | 5.70% | 5.30% | 4.83% |
+| Cyclist | 0.12% | 0.09% | 0.10% |
+
+**Training losses at epoch 5:**
+
+| Metric | Value |
+|---|---|
+| `train/loss` | 2.60 |
+| `train/source_loss` | 2.09 |
+| `train/disc_loss0` | 0.504 |
+| `train/cond_disc_loss*` | *absent* |
+| `meta_data/learning_rate` | ~0 (training complete) |
+
+**Findings:**
+
+1. **Car AP ~1.5% is near zero.** A source-only SECOND on KITTI should yield >40% Car AP on KITTI val. This confirms the asymmetric PCR `[-50,-51.2,-2,150,51.2,4]` was forcing both source (nuScenes, 360°) and target (KITTI, front-only) into the wrong spatial grid, causing nearly all GT boxes to fall outside the predicted range.
+2. **No `cond_disc_loss*` keys** — only marginal discriminator (`disc_loss0`) ran, identical to the k→n `hseplt9x` bug. This config predates the `78c2c28` conditional-only fix.
+3. **`disc_loss0 = 0.504`** — discriminator at chance; either source/target distributions have been aligned or training collapsed.
+4. **Pedestrian AP (~5%) > Car AP (~1.5%)** — nuScenes has far more pedestrian diversity than KITTI-sourced Car annotations, giving the model relatively more pedestrian signal despite the range issue.
+5. **Cyclist AP ~0.1%** — essentially zero, same as k→n runs.
+
+**Issues resolved by today's commits:**
+
+| Issue | Fix commit |
+|---|---|
+| Conditional discriminator absent (`cond_disc_loss*` missing) | `78c2c28` — `second-rospm-C.yaml` is now conditional-only |
+| Wrong `INPUT_DICT_KEYS` (flat tensors fed to Conv2d disc) | `087205a` — spatial maps exported from head |
+| Asymmetric PCR `[-50,-51.2,-2,150,51.2,4]` | `b0c5772` — symmetric `[-75.2,-75.2,-2,75.2,75.2,4]` in base configs |
+
+A re-run with `nuscenes2kitti_models/second-rospm-C.yaml` is required to validate improvement.
 
 ---
 
@@ -215,7 +263,7 @@ The paper's 3-class mAP metric is the correct one for comparison.
 | 1 | ~~**Asymmetric point cloud range**~~ | ~~major AP loss~~ | ✅ **Fixed** (commit `b0c5772`) — symmetric `[-75.2,-75.2,-2,75.2,75.2,4]` now in all DA base configs |
 | 2 | **KITTI as source** (not Waymo) — front-FOV labels only, 20× fewer samples | Model never sees rear/side objects in source; poor generalization | Use Waymo as source to match paper's primary benchmark |
 | 3 | **No source downsampling** | Domain gap in LiDAR density unaddressed | Add random beam dropout to simulate 32-layer target density |
-| 4 | **Conditional discriminator not yet validated** | Fixes are applied but no re-run yet | Trigger new training run with updated configs |
+| 4 | **Conditional discriminator not yet validated** | Fixes are applied but no re-run yet (both K→N and N→K) | Trigger new training runs with `*-rospm-C.yaml` configs |
 
 ---
 
