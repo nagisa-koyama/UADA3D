@@ -79,6 +79,8 @@ def main():
         dist_train = False
         total_gpus = 1
     else:
+        # torchrun sets LOCAL_RANK as an env var (not a CLI arg) in PyTorch >= 1.10
+        args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
         total_gpus, cfg.LOCAL_RANK = getattr(common_utils, 'init_dist_%s' % args.launcher)(
             args.tcp_port, args.local_rank, backend='nccl'
         )
