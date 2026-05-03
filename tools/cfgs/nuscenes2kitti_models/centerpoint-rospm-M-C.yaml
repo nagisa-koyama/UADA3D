@@ -35,7 +35,11 @@ DATA_CONFIG:
     DATA_AUGMENTOR:
         AUG_CONFIG_LIST:
             - NAME: random_object_scaling
-              SCALE_UNIFORM_NOISE: [0.80, 1.20]
+              SCALE_UNIFORM_NOISE: {
+                  'car': [0.8, 1.2],
+                  'pedestrian': [0.9, 1.1],
+                  'bicycle': [0.9, 1.1]
+              }
 
             - NAME: random_world_flip
               ALONG_AXIS_LIST: ['x', 'y']
@@ -115,12 +119,13 @@ MODEL:
 
 
         CONDITIONAL_ADAPTATION:
-            INPUT_DICT_KEYS: ['batch_cls_preds', 'batch_box_preds', 'spatial_features_2d']
-            MLP_TYPE: 'Conv2d' 
-            MLPS: [256, 128] # MIDDLE LAYERS
+            # Keys saved by CenterHead: cls_preds_spatial [B,3,H,W] (sigmoid), box_preds_spatial [B,8,H,W]
+            INPUT_DICT_KEYS: ['cls_preds_spatial', 'box_preds_spatial', 'spatial_features_2d']
+            MLP_TYPE: Conv2d
+            MLPS: [256, 128]       # prepended with NUM_FEATURES+BOX_REGRESSION_PARAMS=264 at init
             NUM_CLASSES: 3
-            BOX_REGRESSION_PARAMS: 8
-            NUM_FEATURES: 256
+            BOX_REGRESSION_PARAMS: 8   # 2 center + 1 center_z + 3 dim + 2 rot
+            NUM_FEATURES: 256          # spatial_features_2d channels
             KERNEL_SIZE: 3
             USE_SIGMOID: True
 

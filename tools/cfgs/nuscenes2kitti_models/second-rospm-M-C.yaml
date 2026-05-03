@@ -118,8 +118,20 @@ MODEL:
             NUM_FEATURES: 512
             KERNEL_SIZE: 3
 
+        CONDITIONAL_ADAPTATION:
+            # Keys saved by AnchorHeadSingle: cls_preds_spatial [B,3,H,W], box_preds_spatial [B,42,H,W]
+            INPUT_DICT_KEYS: ['cls_preds_spatial', 'box_preds_spatial', 'spatial_features_2d']
+            MLP_TYPE: Conv2d
+            MLPS: [256, 128]       # prepended with NUM_FEATURES+BOX_REGRESSION_PARAMS=554 at init
+            NUM_CLASSES: 3
+            BOX_REGRESSION_PARAMS: 42  # 6 anchors × 7 box params
+            NUM_FEATURES: 512          # spatial_features_2d channels
+            KERNEL_SIZE: 3
+            USE_SIGMOID: True
+
         LOSS_CONFIG:
             LOSS_FUNCTION: [CrossEntropy]
+            LOSS_CONDITIONAL: LeastSquares
 
     DENSE_HEAD:
         NAME: AnchorHeadSingle
